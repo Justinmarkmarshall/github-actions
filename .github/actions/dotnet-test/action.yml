@@ -1,0 +1,32 @@
+name: .NET Unit Tests
+
+description: Sets up .NET, restores dependencies, and runs tests in Release configuration
+
+inputs:
+  solution:
+    description: Path to the solution or project to restore and test.
+    required: true
+  dotnet-version:
+    description: .NET SDK version to install.
+    required: false
+    default: "10.0.x"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Restore dependencies
+      shell: bash
+      env:
+        SOLUTION_PATH: ${{ inputs.solution }}
+      run: dotnet restore "$SOLUTION_PATH"
+
+    - name: Run unit tests
+      shell: bash
+      env:
+        SOLUTION_PATH: ${{ inputs.solution }}
+      run: dotnet test "$SOLUTION_PATH" --configuration Release --no-restore

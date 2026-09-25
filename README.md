@@ -46,3 +46,32 @@ ghcr.io/acme/my-app:commit-abc1234
 ```
 
 The workflow publishes the image; it does not deploy or run the application. It also has no separate test step.
+
+## Test .NET applications before publishing
+
+The [`dotnet-test-build-push.yml`](.github/workflows/dotnet-test-build-push.yml) reusable workflow runs the .NET test composite action, then calls the GHCR publishing composite action in a separate job only after tests pass. Applications choose when it runs through their caller workflow:
+
+```yaml
+name: Build and Push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  publish:
+    permissions:
+      contents: read
+      packages: write
+    uses: justinmarkmarshall/github-actions/.github/workflows/dotnet-test-build-push.yml@main
+    with:
+      solution: FplBot.sln
+      dotnet-version: "10.0.x"
+```
+
+`solution` is required and accepts a solution or project path relative to the repository root. `dotnet-version` defaults to `10.0.x`; the optional `image-name` input overrides the image name passed to the publishing action. The caller must grant the permissions shown above so the publishing job can push to GHCR.
+
+The workflow keeps checkout, runner selection, permissions, and the test-before-publish dependency. The [`dotnet-test` composite action](.github/actions/dotnet-test/action.yml) installs the requested SDK, restores dependencies, and runs tests in Release configuration against the source already checked out. Docker implementation remains in the `build-push-ghcr` composite action.
+
+Both jobs check out the caller's source and invoke their composite actions directly from this repository at `@main`. The standalone `build-push-ghcr.yml` workflow remains available for applications that only need publishing.
